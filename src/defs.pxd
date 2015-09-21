@@ -37,6 +37,8 @@ cdef extern from "talloc.h":
         pass
 
     void *talloc_new(const void *ctx)
+    char *talloc_strdup(const void *t, const char *p)
+    void *talloc_realloc_fn(const void *ctx, void *ptr, size_t size)
 
 
 cdef extern from "samba4/smbconf.h":

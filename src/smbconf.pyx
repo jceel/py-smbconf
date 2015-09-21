@@ -27,6 +27,7 @@
 
 
 import enum
+import cython
 from libc.stdint cimport *
 cimport defs
 
@@ -52,7 +53,7 @@ class SambaConfigErrorCode(enum.IntEnum):
 
 class SambaConfigException(Exception):
     def __init__(self, err):
-        super(SambaConfigException, self).__init__(SambaConfigErrorCode(err))
+        self.code = SambaConfigErrorCode(err)
 
 
 cdef class SambaConfig(object):
@@ -90,6 +91,24 @@ cdef class SambaConfig(object):
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
 
+    def __delitem__(self, key):
+        cdef defs.sbcErr err
+
+        err = defs.smbconf_delete_global_parameter(self.conf, key)
+        if err != defs.SBC_ERR_OK:
+            raise SambaConfigException(err)
+
+    def __contains__(self, item):
+        try:
+            _ = self[item]
+        except SambaConfigException, err:
+            if err.code == SambaConfigErrorCode.INVALID_PARAM:
+                return False
+
+            raise
+
+        return True
+
     property shares:
         def __get__(self):
             cdef SambaSharesDict ret
@@ -97,6 +116,13 @@ cdef class SambaConfig(object):
             ret = SambaSharesDict.__new__(SambaSharesDict)
             ret.root = self
             return ret
+
+    cdef defs.smbconf_service* service_by_name(self, name):
+        for i in range(0, self.num_services):
+            if self.services[i].name == str(name):
+                return self.services[i]
+
+        return NULL
 
     def refresh(self):
         cdef uint32_t num_shares
@@ -115,6 +141,12 @@ cdef class SambaConfig(object):
 cdef class SambaSharesDict(dict):
     cdef SambaConfig root
 
+    def __repr__(self):
+        return "{" + ', '.join(["'{0}': {1}".format(k, str(v)) for k, v in self.items()]) + "}"
+
+    def __str__(self):
+        return repr(self)
+
     def __getitem__(self, item):
         cdef SambaShare share
 
@@ -123,30 +155,57 @@ cdef class SambaSharesDict(dict):
                 share = SambaShare.__new__(SambaShare)
                 share.root = self.root
                 share.service = self.root.services[i]
+                share.refresh()
                 return share
 
         raise KeyError(item)
 
-    def __setitem__(self, key, value):
-        pass
+    def __setitem__(self, key, SambaShare value):
+        cdef defs.sbcErr err
+
+        if not isinstance(value, SambaShare):
+            raise ValueError('Can only assign SambaShare instances')
+
+        err = defs.smbconf_create_share(self.root.conf, defs.talloc_strdup(self.root.mem_ctx, key))
+        if err != defs.SBC_ERR_OK:
+            raise SambaConfigException(err)
+
+        self.root.refresh()
+        value.root = self.root
+        value.service = self.root.service_by_name(key)
+        value.save()
 
     def __delitem__(self, key):
-        pass
+        cdef defs.sbcErr err
+
+        err = defs.smbconf_delete_share(self.root.conf, key)
+        if err != defs.SBC_ERR_OK:
+            raise SambaConfigException(err)
 
     def __iter__(self):
         return iter(self.keys())
 
+    def __contains__(self, item):
+        return item in self.keys()
+
     def keys(self):
-        return [self.root.services[i].name for i in range(0, self.root.num_services)]
+        return filter(
+            lambda n: n != 'global',
+            [self.root.services[i].name for i in range(0, self.root.num_services)]
+        )
 
     def values(self):
         cdef SambaShare share
 
         ret = []
         for i in range(0, self.root.num_services):
+            if self.root.services[i].name == str('global'):
+                continue
+
             share = SambaShare.__new__(SambaShare)
             share.root = self.root
             share.service = self.root.services[i]
+            share.refresh()
             ret.append(share)
 
         return ret
@@ -155,38 +214,40 @@ cdef class SambaSharesDict(dict):
         return zip(self.keys(), self.values())
 
 
-
 cdef class SambaShare(dict):
-    cdef SambaConfig root
+    cdef public SambaConfig root
     cdef defs.smbconf_service *service
 
-    def __getitem__(self, item):
+    def __repr__(self):
+        return "<smbconf.SambaShare '{0}'>".format(self.name)
+
+    def __str__(self):
+        return repr(self)
+
+    def refresh(self):
+        self.clear()
+        for i in range(0, self.service.num_params):
+            self[self.service.param_names[i]] = self.service.param_values[i]
+
+    def save(self):
         cdef defs.sbcErr err
-        cdef char *ret
 
-        err = defs.smbconf_get_parameter(self.root.conf, self.root.mem_ctx, self.service.name, item, &ret)
-        if err != defs.SBC_ERR_OK:
-            raise SambaConfigException(err)
+        if not self.root:
+            raise ValueError('Object is not attached to SambaConfig instance')
 
-        return ret
+        for k, v in self.items():
+            print 'name: {0}, k: {1}, v: {2}'.format(self.name, k, v)
+            err = defs.smbconf_set_parameter(self.root.conf, self.name, k, v)
+            if err != defs.SBC_ERR_OK:
+                raise SambaConfigException(err)
 
-    def __setitem__(self, key, value):
-        pass
+        for i in range(0, self.service.num_params):
+            if self.service.param_names[i] not in self:
+                err = defs.smbconf_delete_parameter(self.root.conf, self.name, self.service.param_names[i])
 
-    def __delitem__(self, key):
-        pass
+    property name:
+        def __get__(self):
+            if self.service == NULL:
+                return '<unnamed>'
 
-    def __contains__(self, item):
-        return item in self.keys()
-
-    def __iter__(self):
-        return iter(self.keys())
-
-    def keys(self):
-        return [self.service.param_names[i] for i in range(0, self.service.num_params)]
-
-    def values(self):
-        return [self.service.param_values[i] for i in range(0, self.service.num_params)]
-
-    def items(self):
-        return zip(self.keys(), self.values())
+            return self.service.name
