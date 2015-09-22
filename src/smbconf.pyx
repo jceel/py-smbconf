@@ -182,6 +182,8 @@ cdef class SambaSharesDict(dict):
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
 
+        self.root.refresh()
+
     def __iter__(self):
         return iter(self.keys())
 
@@ -212,6 +214,10 @@ cdef class SambaSharesDict(dict):
 
     def items(self):
         return zip(self.keys(), self.values())
+
+    def clear(self):
+        for i in self.keys():
+            del self[i]
 
 
 cdef class SambaShare(dict):
