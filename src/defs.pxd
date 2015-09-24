@@ -26,6 +26,11 @@
 #####################################################################
 
 from libc.stdint cimport *
+from posix.unistd cimport uid_t, gid_t, pid_t
+from posix.time cimport time_t
+
+
+ctypedef char[256] fstring
 
 
 cdef extern from "stdbool.h":
@@ -97,3 +102,57 @@ cdef extern from "samba4/smbconf.h":
     sbcErr smbconf_transaction_start(smbconf_ctx *ctx)
     sbcErr smbconf_transaction_commit(smbconf_ctx *ctx)
     sbcErr smbconf_transaction_cancel(smbconf_ctx *ctx)
+
+
+cdef extern from "core/werror.h":
+    pass
+
+
+cdef extern from "util/time.h":
+    pass
+
+
+cdef extern from "util/data_blob.h":
+    pass
+
+
+cdef extern from "gen_ndr/server_id.h":
+    cdef struct server_id:
+        pid_t pid
+        uint64_t unique_id
+
+
+cdef struct sessionid:
+    uid_t uid
+    gid_t gid
+    fstring username
+    fstring hostname
+    fstring netbios_name
+    fstring remote_machine
+    fstring id_str
+    uint32_t id_num
+    server_id pid
+    fstring ip_addr_str
+    time_t connect_start
+    fstring protocol_ver
+
+
+cdef struct connections_key:
+    server_id pid
+    int cnum
+    fstring name
+
+
+cdef struct connections_data:
+    server_id pid
+    int cnum
+    uid_t uid
+    gid_t gid
+    fstring servicename
+    fstring addr
+    fstring machine
+    time_t start
+
+
+cdef extern int sessionid_traverse_read(int (*fn)(const char *key, sessionid *session, void *private_data), void *private_data);
+cdef extern int connections_forall_read(int (*fn)(const connections_key *key, const connections_data *data, void *private_data), void *private_data);

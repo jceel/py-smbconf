@@ -29,6 +29,7 @@
 import enum
 import cython
 from libc.stdint cimport *
+from libc.string cimport memcpy
 cimport defs
 
 
@@ -66,7 +67,6 @@ cdef class SambaConfig(object):
     def __init__(self, source):
         cdef defs.sbcErr err
 
-        lp_load_global("") # XXX: Should be /usr/local/etc/smb4.conf?
         self.mem_ctx = <defs.TALLOC_CTX*>defs.talloc_new(NULL)
         err = defs.smbconf_init(self.mem_ctx, &self.conf, source)
         if err != defs.SBC_ERR_OK:
@@ -257,3 +257,127 @@ cdef class SambaShare(dict):
                 return '<unnamed>'
 
             return self.service.name
+
+
+cdef class SambaSession(object):
+    cdef defs.sessionid session
+
+    def __getstate__(self):
+        return {
+            'uid': self.uid,
+            'username': self.username,
+            'hostname': self.hostname,
+            'netbios_name': self.netbios_name,
+            'remote_machine': self.remote_machine,
+            'id': self.id,
+            'ip_address': self.ip_address,
+            'protocol_version': self.protocol_version
+        }
+
+    property uid:
+        def __get__(self):
+            return self.session.uid
+
+    property username:
+        def __get__(self):
+            return self.session.username
+
+    property hostname:
+        def __get__(self):
+            return self.session.hostname
+
+    property netbios_name:
+        def __get__(self):
+            return self.session.netbios_name
+
+    property remote_machine:
+        def __get__(self):
+            return self.session.remote_machine
+
+    property id:
+        def __get__(self):
+            return self.session.id_str
+
+    property ip_address:
+        def __get__(self):
+            return self.session.ip_addr_str
+
+    property protocol_version:
+        def __get__(self):
+            return self.session.protocol_ver
+
+
+cdef class SambaConnection(object):
+    cdef defs.connections_key key
+    cdef defs.connections_data data
+
+    def __getstate__(self):
+        return {
+            'uid': self.uid,
+            'gid': self.gid,
+            'service_name': self.service_name,
+            'address': self.address,
+            'machine': self.machine,
+            'start': self.start
+        }
+
+    property uid:
+        def __get__(self):
+            return self.data.uid
+
+    property gid:
+        def __get__(self):
+            return self.data.gid
+
+    property service_name:
+        def __get__(self):
+            return self.data.servicename
+
+    property address:
+        def __get__(self):
+            return self.data.addr
+
+    property machine:
+        def __get__(self):
+            return self.data.machine
+
+    property start:
+        def __get__(self):
+            return self.data.start
+
+
+cdef int session_traverse_callback(const char *key, defs.sessionid *session, void *priv):
+    cdef SambaSession ses
+
+    obj = <object>priv
+    ses = SambaSession.__new__(SambaSession)
+    memcpy(&ses.session, session, cython.sizeof(defs.sessionid))
+    obj.append(ses)
+    return 0
+
+
+cdef int connection_forall_callback(const defs.connections_key *key, const defs.connections_data *data, void *priv):
+    cdef SambaConnection conn
+
+    obj = <object>priv
+    conn = SambaConnection.__new__(SambaConnection)
+    memcpy(&conn.key, key, cython.sizeof(defs.connections_key))
+    memcpy(&conn.data, data, cython.sizeof(defs.connections_data))
+    obj.append(conn)
+    return 0
+
+
+
+def get_active_sessions():
+    ret = []
+    defs.sessionid_traverse_read(session_traverse_callback, <void*>ret)
+    return ret
+
+
+def get_active_users():
+    ret = []
+    defs.connections_forall_read(connection_forall_callback, <void*>ret)
+    return ret
+
+
+lp_load_global("") # XXX: Should be /usr/local/etc/smb4.conf?
