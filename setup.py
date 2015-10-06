@@ -35,7 +35,7 @@ extensions = [
         ["src/smbconf.pyx"],
         include_dirs=["/usr/local/include", "/usr/local/include/samba4"],
         extra_compile_args=["-g", "-O0"],
-        extra_link_args=["-L/usr/local/lib/samba", "-ltalloc", "-lsmbconf", "-lsmbd-base-samba4"],
+        extra_link_args=["-L/usr/local/lib/samba", "-ltalloc", "-lsmbconf", "-lsmbd-base"],
     ),
 ]
 

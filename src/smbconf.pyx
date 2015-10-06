@@ -367,7 +367,6 @@ cdef int connection_forall_callback(const defs.connections_key *key, const defs.
     return 0
 
 
-
 def get_active_sessions():
     ret = []
     defs.sessionid_traverse_read(session_traverse_callback, <void*>ret)
