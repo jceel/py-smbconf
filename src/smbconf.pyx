@@ -28,6 +28,7 @@
 
 import enum
 import cython
+from cpython.version cimport PY_MAJOR_VERSION
 from libc.stdint cimport *
 from libc.string cimport memcpy
 cimport defs
@@ -67,6 +68,9 @@ cdef class SambaConfig(object):
     def __init__(self, source):
         cdef defs.sbcErr err
 
+        if PY_MAJOR_VERSION == 3 and isinstance(source, str):
+            source = source.encode('utf8')
+
         self.mem_ctx = <defs.TALLOC_CTX*>defs.talloc_new(NULL)
         err = defs.smbconf_init(self.mem_ctx, &self.conf, source)
         if err != defs.SBC_ERR_OK:
@@ -78,6 +82,9 @@ cdef class SambaConfig(object):
         cdef defs.sbcErr err
         cdef char *result
 
+        if PY_MAJOR_VERSION == 3 and isinstance(item, str):
+            item = item.encode('utf8')
+
         err = defs.smbconf_get_global_parameter(self.conf, self.mem_ctx, item, &result)
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
@@ -87,12 +94,20 @@ cdef class SambaConfig(object):
     def __setitem__(self, key, value):
         cdef defs.sbcErr err
 
+        if PY_MAJOR_VERSION == 3 and isinstance(key, str):
+            key = key.encode('utf8')
+        if PY_MAJOR_VERSION == 3 and isinstance(value, str):
+            value = value.encode('utf8')
+
         err = defs.smbconf_set_global_parameter(self.conf, key, value)
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
 
     def __delitem__(self, key):
         cdef defs.sbcErr err
+
+        if PY_MAJOR_VERSION == 3 and isinstance(key, str):
+            key = key.encode('utf8')
 
         err = defs.smbconf_delete_global_parameter(self.conf, key)
         if err != defs.SBC_ERR_OK:
@@ -166,6 +181,11 @@ cdef class SambaSharesDict(dict):
         if not isinstance(value, SambaShare):
             raise ValueError('Can only assign SambaShare instances')
 
+        if PY_MAJOR_VERSION == 3 and isinstance(key, str):
+            key = key.encode('utf8')
+        if PY_MAJOR_VERSION == 3 and isinstance(value, str):
+            value = value.encode('utf8')
+
         err = defs.smbconf_create_share(self.root.conf, defs.talloc_strdup(self.root.mem_ctx, key))
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
@@ -177,6 +197,9 @@ cdef class SambaSharesDict(dict):
 
     def __delitem__(self, key):
         cdef defs.sbcErr err
+
+        if PY_MAJOR_VERSION == 3 and isinstance(key, str):
+            key = key.encode('utf8')
 
         err = defs.smbconf_delete_share(self.root.conf, key)
         if err != defs.SBC_ERR_OK:
