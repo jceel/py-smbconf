@@ -68,7 +68,7 @@ cdef class SambaConfig(object):
         cdef defs.sbcErr err
 
         self.mem_ctx = <defs.TALLOC_CTX*>defs.talloc_new(NULL)
-        err = defs.smbconf_init(self.mem_ctx, &self.conf, source)
+        err = defs.smbconf_init(self.mem_ctx, &self.conf, source.encode('utf8'))
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
 
@@ -78,7 +78,7 @@ cdef class SambaConfig(object):
         cdef defs.sbcErr err
         cdef char *result
 
-        err = defs.smbconf_get_global_parameter(self.conf, self.mem_ctx, item, &result)
+        err = defs.smbconf_get_global_parameter(self.conf, self.mem_ctx, item.encode('utf8'), &result)
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
 
@@ -87,14 +87,14 @@ cdef class SambaConfig(object):
     def __setitem__(self, key, value):
         cdef defs.sbcErr err
 
-        err = defs.smbconf_set_global_parameter(self.conf, key, value)
+        err = defs.smbconf_set_global_parameter(self.conf, key.encode('utf8'), value.encode('utf8'))
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
 
     def __delitem__(self, key):
         cdef defs.sbcErr err
 
-        err = defs.smbconf_delete_global_parameter(self.conf, key)
+        err = defs.smbconf_delete_global_parameter(self.conf, key.encode('utf8'))
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
 
@@ -119,7 +119,7 @@ cdef class SambaConfig(object):
 
     cdef defs.smbconf_service* service_by_name(self, name):
         for i in range(0, self.num_services):
-            if self.services[i].name == str(name):
+            if self.services[i].name.decode('utf8') == name:
                 return self.services[i]
 
         return NULL
@@ -166,7 +166,7 @@ cdef class SambaSharesDict(dict):
         if not isinstance(value, SambaShare):
             raise ValueError('Can only assign SambaShare instances')
 
-        err = defs.smbconf_create_share(self.root.conf, defs.talloc_strdup(self.root.mem_ctx, key))
+        err = defs.smbconf_create_share(self.root.conf, defs.talloc_strdup(self.root.mem_ctx, key.encode('utf8')))
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
 
@@ -178,7 +178,7 @@ cdef class SambaSharesDict(dict):
     def __delitem__(self, key):
         cdef defs.sbcErr err
 
-        err = defs.smbconf_delete_share(self.root.conf, key)
+        err = defs.smbconf_delete_share(self.root.conf, key.encode('utf8'))
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
 
@@ -193,7 +193,7 @@ cdef class SambaSharesDict(dict):
     def keys(self):
         return filter(
             lambda n: n != 'global',
-            [self.root.services[i].name for i in range(0, self.root.num_services)]
+            [self.root.services[i].name.decode('utf8') for i in range(0, self.root.num_services)]
         )
 
     def values(self):
@@ -201,7 +201,7 @@ cdef class SambaSharesDict(dict):
 
         ret = []
         for i in range(0, self.root.num_services):
-            if self.root.services[i].name == str('global'):
+            if self.root.services[i].name.decode('utf8') == 'global':
                 continue
 
             share = SambaShare.__new__(SambaShare)
@@ -242,8 +242,7 @@ cdef class SambaShare(dict):
             raise ValueError('Object is not attached to SambaConfig instance')
 
         for k, v in self.items():
-            print 'name: {0}, k: {1}, v: {2}'.format(self.name, k, v)
-            err = defs.smbconf_set_parameter(self.root.conf, self.name, k, v)
+            err = defs.smbconf_set_parameter(self.root.conf, self.name.encode('utf8'), k.encode('utf8'), v.encode('utf8'))
             if err != defs.SBC_ERR_OK:
                 raise SambaConfigException(err)
 
@@ -256,7 +255,7 @@ cdef class SambaShare(dict):
             if self.service == NULL:
                 return '<unnamed>'
 
-            return self.service.name
+            return self.service.name.decode('utf8')
 
 
 cdef class SambaSession(object):
