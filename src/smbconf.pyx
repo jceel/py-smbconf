@@ -151,7 +151,7 @@ cdef class SambaSharesDict(dict):
         cdef SambaShare share
 
         for i in range(0, self.root.num_services):
-            if self.root.services[i].name == item:
+            if self.root.services[i].name.decode('ascii') == item:
                 share = SambaShare.__new__(SambaShare)
                 share.root = self.root
                 share.service = self.root.services[i]
