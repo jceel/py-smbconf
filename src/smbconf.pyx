@@ -247,7 +247,7 @@ cdef class SambaShare(dict):
                 raise SambaConfigException(err)
 
         for i in range(0, self.service.num_params):
-            if self.service.param_names[i] not in self:
+            if self.service.param_names[i].decode('utf8') not in self:
                 err = defs.smbconf_delete_parameter(self.root.conf, self.name.encode('utf8'), self.service.param_names[i])
 
     property name:
