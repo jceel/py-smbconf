@@ -279,31 +279,31 @@ cdef class SambaSession(object):
 
     property username:
         def __get__(self):
-            return self.session.username
+            return self.session.username.decode('utf-8')
 
     property hostname:
         def __get__(self):
-            return self.session.hostname
+            return self.session.hostname.decode('utf-8')
 
     property netbios_name:
         def __get__(self):
-            return self.session.netbios_name
+            return self.session.netbios_name.decode('utf-8')
 
     property remote_machine:
         def __get__(self):
-            return self.session.remote_machine
+            return self.session.remote_machine.decode('utf-8')
 
     property id:
         def __get__(self):
-            return self.session.id_str
+            return self.session.id_str.decode('utf-8')
 
     property ip_address:
         def __get__(self):
-            return self.session.ip_addr_str
+            return self.session.ip_addr_str.decode('utf-8')
 
     property protocol_version:
         def __get__(self):
-            return self.session.protocol_ver
+            return self.session.protocol_ver.decode('utf-8')
 
 
 cdef class SambaConnection(object):
@@ -330,15 +330,15 @@ cdef class SambaConnection(object):
 
     property service_name:
         def __get__(self):
-            return self.data.servicename
+            return self.data.servicename.decode('utf-8')
 
     property address:
         def __get__(self):
-            return self.data.addr
+            return self.data.addr.decode('utf-8')
 
     property machine:
         def __get__(self):
-            return self.data.machine
+            return self.data.machine.decode('utf-8')
 
     property start:
         def __get__(self):
