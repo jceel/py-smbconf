@@ -109,6 +109,10 @@ cdef class SambaConfig(object):
 
         return True
 
+    def update(self, otherdict):
+        for k, v in otherdict.values():
+            self[k] = v
+
     property shares:
         def __get__(self):
             cdef SambaSharesDict ret
