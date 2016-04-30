@@ -358,6 +358,9 @@ cdef class SambaMessagingContext(object):
         self.evt_ctx = defs.tevent_context_init(NULL)
         self.msg_ctx = defs.messaging_init(NULL, self.evt_ctx)
 
+    def __dealloc__(self):
+        defs.messaging_cleanup(self.msg_ctx, 0)
+
     def __send_msg(self, msg_type, value=None):
         cdef defs.server_id procid
         cdef char *c_value = NULL

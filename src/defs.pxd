@@ -242,6 +242,7 @@ cdef struct server_id:
 cdef extern bool message_send_all(messaging_context *msg_ctx, int msg_type, const void *buf, size_t len, int *n_sent) nogil
 cdef extern int messaging_send_buf(messaging_context *msg_ctx, server_id server, uint32_t msg_type, const uint8_t *buf, size_t len) nogil
 cdef extern messaging_context *messaging_init(TALLOC_CTX *mem_ctx, tevent_context *ev)
+cdef extern int messaging_cleanup(messaging_context *msg_ctx, pid_t pid)
 cdef extern pid_t procid_to_pid(const server_id *proc)
 cdef extern server_id pid_to_procid(pid_t pid);
 
