@@ -358,28 +358,36 @@ cdef class SambaMessagingContext(object):
         self.evt_ctx = defs.tevent_context_init(NULL)
         self.msg_ctx = defs.messaging_init(NULL, self.evt_ctx)
 
-    def kill_share_connections(self, share):
+    def __send_msg(self, msg_type, value=None):
         cdef defs.server_id procid
-        cdef char *c_share
+        cdef char *c_value = NULL
+        cdef int len = 0
 
-        share = share.encode('utf-8')
-        c_share = <char *>share
         procid = defs.pid_to_procid(self.smbd_pid)
+
+        if value is not None:
+            value = value.encode('utf-8')
+            c_value = <char *>value
+            len = strlen(c_value) + 1
 
         with nogil:
             defs.messaging_send_buf(
                 self.msg_ctx,
                 procid,
                 defs.MSG_SMB_FORCE_TDIS,
-                <const uint8_t *>c_share,
-                strlen(c_share) + 1
+                <const uint8_t *>c_value,
+                len
             )
 
+
+    def kill_share_connections(self, share):
+        self.__send_msg(defs.MSG_SMB_FORCE_TDIS, share)
+
     def kill_user_connection(self, ip):
-        pass
+        self.__send_msg(defs.MSG_SMB_KILL_CLIENT_IP, ip)
 
     def reload_config(self):
-        pass
+        self.__send_msg(defs.MSG_SMB_CONF_UPDATED)
 
     property pidfile_directory:
         def __get__(self):
