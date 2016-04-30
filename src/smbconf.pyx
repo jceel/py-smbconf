@@ -25,14 +25,15 @@
 #
 #####################################################################
 
-
+import os
 import enum
 import cython
 from libc.stdint cimport *
-from libc.string cimport memcpy
+from libc.string cimport memcpy, strlen
 cimport defs
 
 
+cdef extern const char *lp_pid_directory()
 cdef extern bint lp_load_global(const char *path)
 
 
@@ -347,6 +348,57 @@ cdef class SambaConnection(object):
     property start:
         def __get__(self):
             return self.data.start
+
+
+cdef class SambaMessagingContext(object):
+    cdef defs.tevent_context *evt_ctx
+    cdef defs.messaging_context *msg_ctx
+
+    def __init__(self):
+        self.evt_ctx = defs.tevent_context_init(NULL)
+        self.msg_ctx = defs.messaging_init(NULL, self.evt_ctx)
+
+    def kill_share_connections(self, share):
+        cdef defs.server_id procid
+        cdef char *c_share
+
+        share = share.encode('utf-8')
+        c_share = <char *>share
+        procid = defs.pid_to_procid(self.smbd_pid)
+
+        with nogil:
+            defs.messaging_send_buf(
+                self.msg_ctx,
+                procid,
+                defs.MSG_SMB_FORCE_TDIS,
+                <const uint8_t *>c_share,
+                strlen(c_share) + 1
+            )
+
+    def kill_user_connection(self, ip):
+        pass
+
+    def reload_config(self):
+        pass
+
+    property pidfile_directory:
+        def __get__(self):
+            return lp_pid_directory().decode('utf-8')
+
+    property smbd_pid:
+        def __get__(self):
+            with open(os.path.join(self.pidfile_directory, 'smbd.pid')) as f:
+                return int(f.read().strip())
+
+    property nmbd_pid:
+        def __get__(self):
+            with open(os.path.join(self.pidfile_directory, 'nmbd.pid')) as f:
+                return int(f.read().strip())
+
+    property winbindd_pid:
+        def __get__(self):
+            with open(os.path.join(self.pidfile_directory, 'winbindd.pid')) as f:
+                return int(f.read().strip())
 
 
 cdef int session_traverse_callback(const char *key, defs.sessionid *session, void *priv):

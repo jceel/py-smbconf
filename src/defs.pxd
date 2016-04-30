@@ -46,6 +46,13 @@ cdef extern from "talloc.h":
     void *talloc_realloc_fn(const void *ctx, void *ptr, size_t size)
 
 
+cdef extern from "tevent.h":
+    cdef struct tevent_context:
+        pass
+
+    tevent_context *tevent_context_init(TALLOC_CTX *mem_ctx)
+
+
 cdef extern from "samba4/smbconf.h":
     ctypedef enum sbcErr:
         SBC_ERR_OK
@@ -154,5 +161,96 @@ cdef struct connections_data:
     time_t start
 
 
-cdef extern int sessionid_traverse_read(int (*fn)(const char *key, sessionid *session, void *private_data), void *private_data);
-cdef extern int connections_forall_read(int (*fn)(const connections_key *key, const connections_data *data, void *private_data), void *private_data);
+cdef enum:
+    MSG_DEBUG = 0x0001
+    MSG_PING = 0x0002
+    MSG_PONG = 0x0003
+    MSG_PROFILE = 0x0004
+    MSG_REQ_DEBUGLEVEL = 0x0005
+    MSG_DEBUGLEVEL = 0x0006
+    MSG_REQ_PROFILELEVEL = 0x0007
+    MSG_PROFILELEVEL = 0x0008
+    MSG_REQ_POOL_USAGE = 0x0009
+    MSG_POOL_USAGE = 0x000A
+    MSG_REQ_DMALLOC_MARK = 0x000B
+    MSG_REQ_DMALLOC_LOG_CHANGED = 0x000C
+    MSG_SHUTDOWN = 0x000D
+    ID_CACHE_DELETE = 0x000F
+    ID_CACHE_KILL = 0x0010
+    MSG_SMB_CONF_UPDATED = 0x0021
+    MSG_PREFORK_CHILD_EVENT = 0x0031
+    MSG_PREFORK_PARENT_EVENT = 0x0032
+    MSG_FORCE_ELECTION = 0x0101
+    MSG_WINS_NEW_ENTRY = 0x0102
+    MSG_SEND_PACKET = 0x0103
+    MSG_PRINTER_NOTIFY2 = 0x0202
+    MSG_PRINTER_DRVUPGRADE = 0x0203
+    MSG_PRINTERDATA_INIT_RESET = 0x0204
+    MSG_PRINTER_UPDATE = 0x0205
+    MSG_PRINTER_MOD = 0x0206
+    MSG_PRINTER_PCAP = 0x0207
+    MSG_SMB_FORCE_TDIS = 0x0302
+    MSG_SMB_UNLOCK = 0x0305
+    MSG_SMB_BREAK_REQUEST = 0x0306
+    MSG_SMB_KERNEL_BREAK = 0x030A
+    MSG_SMB_FILE_RENAME = 0x030B
+    MSG_SMB_INJECT_FAULT = 0x030C
+    MSG_SMB_BLOCKING_LOCK_CANCEL = 0x030D
+    MSG_SMB_NOTIFY = 0x030E
+    MSG_SMB_STAT_CACHE_DELETE = 0x030F
+    MSG_PVFS_NOTIFY = 0x0310
+    MSG_SMB_BRL_VALIDATE = 0x0311
+    MSG_SMB_CLOSE_FILE = 0x0313
+    MSG_SMB_NOTIFY_CLEANUP = 0x0314
+    MSG_SMB_SCAVENGER = 0x0315
+    MSG_SMB_KILL_CLIENT_IP = 0x0316
+    MSG_SMB_TELL_NUM_CHILDREN = 0x0317
+    MSG_SMB_NUM_CHILDREN = 0x0318
+    MSG_SMB_NOTIFY_CANCEL_DELETED = 0x0319
+    MSG_WINBIND_FINISHED = 0x0401
+    MSG_WINBIND_FORGET_STATE = 0x0402
+    MSG_WINBIND_ONLINE = 0x0403
+    MSG_WINBIND_OFFLINE = 0x0404
+    MSG_WINBIND_ONLINESTATUS = 0x0405
+    MSG_WINBIND_TRY_TO_GO_ONLINE = 0x0406
+    MSG_WINBIND_FAILED_TO_GO_ONLINE = 0x0407
+    MSG_WINBIND_VALIDATE_CACHE = 0x0408
+    MSG_WINBIND_DUMP_DOMAIN_LIST = 0x0409
+    MSG_WINBIND_IP_DROPPED = 0x040A
+    MSG_WINBIND_DOMAIN_ONLINE = 0x040B
+    MSG_WINBIND_DOMAIN_OFFLINE = 0x040C
+    MSG_WINBIND_NEW_TRUSTED_DOMAIN = 0x040D
+    MSG_DUMP_EVENT_LIST = 0x0500
+    MSG_SMBXSRV_SESSION_CLOSE = 0x0600
+    MSG_BRL_RETRY = 0x0700
+    MSG_PVFS_RETRY_OPEN = 0x0701
+    MSG_IRPC = 0x0702
+    MSG_NTVFS_OPLOCK_BREAK = 0x0703
+    MSG_DREPL_ALLOCATE_RID = 0x0704
+    MSG_DBWRAP_MODIFIED = 4003
+    MSG_TMP_BASE = 0xF000
+
+
+cdef struct messaging_context:
+    int dummy
+
+
+cdef struct server_id:
+    int dummy
+
+
+cdef extern bool message_send_all(messaging_context *msg_ctx, int msg_type, const void *buf, size_t len, int *n_sent) nogil
+cdef extern int messaging_send_buf(messaging_context *msg_ctx, server_id server, uint32_t msg_type, const uint8_t *buf, size_t len) nogil
+cdef extern messaging_context *messaging_init(TALLOC_CTX *mem_ctx, tevent_context *ev)
+cdef extern pid_t procid_to_pid(const server_id *proc)
+cdef extern server_id pid_to_procid(pid_t pid);
+
+
+cdef extern int sessionid_traverse_read(
+    int (*fn)(const char *key, sessionid *session, void *private_data),
+    void *private_data
+)
+cdef extern int connections_forall_read(
+    int (*fn)(const connections_key *key, const connections_data *data, void *private_data),
+    void *private_data
+)
