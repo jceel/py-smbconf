@@ -374,11 +374,10 @@ cdef class SambaMessagingContext(object):
             defs.messaging_send_buf(
                 self.msg_ctx,
                 procid,
-                defs.MSG_SMB_FORCE_TDIS,
+                msg_type,
                 <const uint8_t *>c_value,
                 len
             )
-
 
     def kill_share_connections(self, share):
         self.__send_msg(defs.MSG_SMB_FORCE_TDIS, share)
