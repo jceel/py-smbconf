@@ -361,6 +361,7 @@ cdef class SambaMessagingContext(object):
     def __send_msg(self, msg_type, value=None):
         cdef defs.server_id procid
         cdef char *c_value = NULL
+        cdef int c_msg_type = msg_type
         cdef int len = 0
 
         procid = defs.pid_to_procid(self.smbd_pid)
@@ -374,7 +375,7 @@ cdef class SambaMessagingContext(object):
             defs.messaging_send_buf(
                 self.msg_ctx,
                 procid,
-                msg_type,
+                c_msg_type,
                 <const uint8_t *>c_value,
                 len
             )
