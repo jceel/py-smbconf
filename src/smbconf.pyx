@@ -445,4 +445,8 @@ def get_active_users():
     return ret
 
 
-lp_load_global("") # XXX: Should be /usr/local/etc/smb4.conf?
+def loadparm():
+    lp_load_global("") # XXX: Should be /usr/local/etc/smb4.conf?
+
+
+loadparm()
