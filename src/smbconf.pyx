@@ -68,6 +68,8 @@ cdef class SambaConfig(object):
     def __init__(self, source):
         cdef defs.sbcErr err
 
+        loadparm()
+
         self.mem_ctx = <defs.TALLOC_CTX*>defs.talloc_new(NULL)
         err = defs.smbconf_init(self.mem_ctx, &self.conf, source.encode('utf8'))
         if err != defs.SBC_ERR_OK:
@@ -102,7 +104,7 @@ cdef class SambaConfig(object):
     def __contains__(self, item):
         try:
             _ = self[item]
-        except SambaConfigException, err:
+        except SambaConfigException as err:
             if err.code == SambaConfigErrorCode.INVALID_PARAM:
                 return False
 
