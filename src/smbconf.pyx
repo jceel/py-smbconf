@@ -77,6 +77,10 @@ cdef class SambaConfig(object):
 
         self.refresh()
 
+    def __dealloc__(self):
+        if self.conf:
+            defs.smbconf_shutdown(self.conf)
+
     def __getitem__(self, item):
         cdef defs.sbcErr err
         cdef char *result
