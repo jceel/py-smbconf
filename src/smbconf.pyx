@@ -148,6 +148,20 @@ cdef class SambaConfig(object):
         if self.num_services > 0:
             self.global_conf = self.services[0]
 
+    def transaction_start(self):
+        cdef defs.sbcErr err
+
+        err = defs.smbconf_transaction_start(self.conf)
+        if err != defs.SBC_ERR_OK:
+            raise SambaConfigException(err)
+
+    def transaction_commit(self):
+        cdef defs.sbcErr err
+
+        err = defs.smbconf_transaction_commit(self.conf)
+        if err != defs.SBC_ERR_OK:
+            raise SambaConfigException(err)
+
 
 cdef class SambaSharesDict(dict):
     cdef SambaConfig root
