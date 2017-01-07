@@ -53,7 +53,7 @@ cdef extern from "tevent.h":
     tevent_context *tevent_context_init(TALLOC_CTX *mem_ctx)
 
 
-cdef extern from "samba4/smbconf.h":
+cdef extern from "samba4/smbconf.h" nogil:
     ctypedef enum sbcErr:
         SBC_ERR_OK
         SBC_ERR_NOT_IMPLEMENTED
