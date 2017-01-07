@@ -151,14 +151,27 @@ cdef class SambaConfig(object):
     def transaction_start(self):
         cdef defs.sbcErr err
 
-        err = defs.smbconf_transaction_start(self.conf)
+        with nogil:
+            err = defs.smbconf_transaction_start(self.conf)
+
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
 
     def transaction_commit(self):
         cdef defs.sbcErr err
 
-        err = defs.smbconf_transaction_commit(self.conf)
+        with nogil:
+            err = defs.smbconf_transaction_commit(self.conf)
+
+        if err != defs.SBC_ERR_OK:
+            raise SambaConfigException(err)
+
+    def transaction_cancel(self):
+        cdef defs.sbcErr err
+
+        with nogil:
+            err = defs.smbconf_transaction_cancel(self.conf)
+
         if err != defs.SBC_ERR_OK:
             raise SambaConfigException(err)
 
