@@ -244,7 +244,7 @@ cdef class SambaShare(dict):
     def refresh(self):
         self.clear()
         for i in range(0, self.service.num_params):
-            self[self.service.param_names[i]] = self.service.param_values[i]
+            self[self.service.param_names[i].decode('utf8')] = self.service.param_values[i].decode('utf8')
 
     def save(self):
         cdef defs.sbcErr err
